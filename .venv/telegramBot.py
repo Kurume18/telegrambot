@@ -37,20 +37,23 @@ class OrderState(StatesGroup):
 # Главное меню
 def main_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
-    builder.row(
+    builder.add(
         KeyboardButton(text="Полотно пленка"),
-        KeyboardButton(text="Полотно тканевое Descor")
-    )
-    builder.row(
+        KeyboardButton(text="Полотно тканевое Descor"),
         KeyboardButton(text="Багет ПВХ"),
-        KeyboardButton(text="Багет flexy под подсветку")
-    )
-    builder.row(
+        KeyboardButton(text="Багет flexy под подсветку"),
         KeyboardButton(text="Заглушка"),
-        KeyboardButton(text="Другие товары")
+        KeyboardButton(text="Другие товары"),
+        KeyboardButton(text="Оформить заказ")
     )
-    builder.row(KeyboardButton(text="Оформить заказ"))
-    return builder.as_markup(resize_keyboard=True)
+
+    # Настраиваем расположение кнопок
+    builder.adjust(2, 2, 2, 1)  # 2 кнопки в первых трех рядах, 1 в последнем
+
+    return builder.as_markup(
+        resize_keyboard=True,
+        input_field_placeholder="Выберите товар"
+    )
 
 # Обработчик команды /start
 @router.message(Command("start"))
