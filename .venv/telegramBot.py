@@ -1,94 +1,118 @@
 import logging
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram import Router
 
-API_TOKEN = 'ВАШ_ТОКЕН_БОТА'
-
+# Настройка логирования
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=API_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
 
-# Словарь с ценами из файла
+# Инициализация объектов
+API_TOKEN = 'ВАШ_ТОКЕН_БОТА'
+bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
+router = Router()
+dp.include_router(router)
+
+# Словарь с ценами
 PRICES = {
+    "Полотно пленка": 400,
+    "Полотно тканевое Descor": 2500,
+    "Багет ПВХ": 100,
+    "Багет flexy под подсветку": 2000,
+    "Заглушка": 100,
+    # Добавьте остальные товары по аналогии
 }
 
-
 class OrderState(StatesGroup):
-    waiting_product = State()
-    waiting_quantity = State()
-    waiting_contact = State()
+    select_product = State()
+    enter_quantity = State()
+    enter_contacts = State()
 
+# Главное меню
+def main_kb() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    builder.row(
+        KeyboardButton(text="Полотно пленка"),
+        KeyboardButton(text="Полотно тканевое Descor")
+    )
+    builder.row(
+        KeyboardButton(text="Багет ПВХ"),
+        KeyboardButton(text="Багет flexy под подсветку")
+    )
+    builder.row(
+        KeyboardButton(text="Заглушка"),
+        KeyboardButton(text="Другие товары")
+    )
+    builder.row(KeyboardButton(text="Оформить заказ"))
+    return builder.as_markup(resize_keyboard=True)
 
-def calculate_cost(product: str, quantity: float) -> float:
-    return PRICES.get(product, 0) * quantity
-
-
-@dp.message_handler(commands=['start'])
+# Обработчик команды /start
+@router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Полотно пленка", "Полотно тканевое Descor")
-    keyboard.add("Багет ПВХ", "Багет flexy под подсветку")
-    keyboard.add("Заглушка", "Другие товары")
-    keyboard.add("Оформить заказ")
-
     await message.answer(
         "Добро пожаловать! Выберите товар:",
-        reply_markup=keyboard
+        reply_markup=main_kb()
     )
 
-
-@dp.message_handler(text="Другие товары")
+# Обработчик кнопки "Другие товары"
+@router.message(F.text == "Другие товары")
 async def other_products(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Более 4 углов", "Обработка углов")
-    keyboard.add("Назад")
-    await message.answer("Дополнительные товары:", reply_markup=keyboard)
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="Более 4 углов"))
+    builder.add(KeyboardButton(text="Обработка углов"))
+    builder.adjust(2)
+    builder.row(KeyboardButton(text="Назад"))
+    await message.answer(
+        "Дополнительные товары:",
+        reply_markup=builder.as_markup(resize_keyboard=True)
+    )
 
-
-@dp.message_handler(text="Назад")
-async def back_to_main(message: types.Message):
+# Обработчик кнопки "Назад"
+@router.message(F.text == "Назад")
+async def back_handler(message: types.Message):
     await cmd_start(message)
 
-
-@dp.message_handler(text="Оформить заказ")
-async def request_contact(message: types.Message):
-    await OrderState.waiting_contact.set()
+# Обработчик оформления заказа
+@router.message(F.text == "Оформить заказ")
+async def order_handler(message: types.Message, state: FSMContext):
+    await state.set_state(OrderState.enter_contacts)
     await message.answer("Введите ваше имя и контактный телефон:")
 
-
-@dp.message_handler(state=OrderState.waiting_contact)
-async def process_contact(message: types.Message, state: FSMContext):
+# Обработчик контактных данных
+@router.message(OrderState.enter_contacts)
+async def process_contacts(message: types.Message, state: FSMContext):
     with open("orders.txt", "a") as file:
         file.write(f"Клиент: {message.text}\n")
-    await state.finish()
-    await message.answer("Спасибо! Мы с вами свяжемся.")
+    await state.clear()
+    await message.answer("Спасибо! Мы с вами свяжемся.", reply_markup=main_kb())
 
+# Обработчик выбора товара
+@router.message(F.text.in_(PRICES.keys()))
+async def product_selected(message: types.Message, state: FSMContext):
+    await state.update_data(selected_product=message.text)
+    await state.set_state(OrderState.enter_quantity)
+    await message.answer(f"Введите количество/размер для {message.text}:")
 
-@dp.message_handler()
-async def process_product(message: types.Message):
-    product = message.text
-    if product not in PRICES:
-        return
-
-    await OrderState.waiting_quantity.set()
-    await message.answer(f"Введите количество/размер для {product}:")
-
-
-@dp.message_handler(state=OrderState.waiting_quantity)
+# Обработчик ввода количества
+@router.message(OrderState.enter_quantity)
 async def process_quantity(message: types.Message, state: FSMContext):
     try:
         quantity = float(message.text)
-        product = (await state.get_data()).get('product')
-        cost = calculate_cost(product, quantity)
-        await message.answer(f"Стоимость: {cost} руб.")
+        data = await state.get_data()
+        product = data.get('selected_product')
+        cost = PRICES[product] * quantity
+        await message.answer(f"Стоимость {product}: {cost} руб.")
     except ValueError:
         await message.answer("Пожалуйста, введите число!")
     finally:
-        await state.finish()
-
+        await state.clear()
+        await cmd_start(message)
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    dp.run_polling(bot)
