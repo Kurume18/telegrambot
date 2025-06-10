@@ -1,16 +1,15 @@
 import logging
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from aiogram import Router
+from aiogram.client.default import DefaultBotProperties
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
-
 # Инициализация объектов
 API_TOKEN = 'ВАШ_ТОКЕН_БОТА'
 bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
