@@ -90,7 +90,7 @@ async def order_handler(message: types.Message, state: FSMContext):
 # Обработчик контактных данных
 @router.message(OrderState.enter_contacts)
 async def process_contacts(message: types.Message, state: FSMContext):
-    with open("orders.txt", "a") as file:
+    with open("orders.txt", "a", encoding="utf-8") as file:
         file.write(f"Клиент: {message.text}\n")
     await state.clear()
     await message.answer("Спасибо! Мы с вами свяжемся.", reply_markup=main_kb())
