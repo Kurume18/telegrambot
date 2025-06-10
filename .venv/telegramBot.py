@@ -1,19 +1,23 @@
 import logging
-from aiogram import Bot, Dispatcher, types, F, Router
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.client.default import DefaultBotProperties
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram import Router
+from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.state import StatesGroup, State
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
+
 # Инициализация объектов
-API_TOKEN = 'ВАШ_ТОКЕН_БОТА'
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(
+    token="7729020193:AAHNd76RUEAxts8l3beOFi-Vf6qNyT2Bj4w",
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Установка параметров по умолчанию
+)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 router = Router()
@@ -21,11 +25,13 @@ dp.include_router(router)
 
 # Словарь с ценами
 PRICES = {
-    "Полотно пленка": 400,
+    "Полотно ПВХ": 400,
     "Полотно тканевое Descor": 2500,
     "Багет ПВХ": 100,
     "Багет flexy под подсветку": 2000,
     "Заглушка": 100,
+    "Более 4 углов": 100,
+    "Cтойки под пожарную сигнализацию": 400,
     # Добавьте остальные товары по аналогии
 }
 
@@ -37,8 +43,10 @@ class OrderState(StatesGroup):
 # Главное меню
 def main_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
+
+    # Добавляем кнопки
     builder.add(
-        KeyboardButton(text="Полотно пленка"),
+        KeyboardButton(text="Полотно ПВХ"),
         KeyboardButton(text="Полотно тканевое Descor"),
         KeyboardButton(text="Багет ПВХ"),
         KeyboardButton(text="Багет flexy под подсветку"),
@@ -47,12 +55,13 @@ def main_kb() -> ReplyKeyboardMarkup:
         KeyboardButton(text="Оформить заказ")
     )
 
-    # Настраиваем расположение кнопок
-    builder.adjust(2, 2, 2, 1)  # 2 кнопки в первых трех рядах, 1 в последнем
+    # Распределение кнопок по рядам:
+    # 2 кнопки в первом ряду, 2 во втором, 2 в третьем, 1 в четвертом
+    builder.adjust(2, 2, 2, 1)
 
     return builder.as_markup(
         resize_keyboard=True,
-        input_field_placeholder="Выберите товар"
+        input_field_placeholder="Выберите действие"
     )
 
 # Обработчик команды /start
@@ -68,7 +77,7 @@ async def cmd_start(message: types.Message):
 async def other_products(message: types.Message):
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text="Более 4 углов"))
-    builder.add(KeyboardButton(text="Обработка углов"))
+    builder.add(KeyboardButton(text="Cтойки под пожарную сигнализацию"))
     builder.adjust(2)
     builder.row(KeyboardButton(text="Назад"))
     await message.answer(
