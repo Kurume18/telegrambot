@@ -115,4 +115,4 @@ async def process_quantity(message: types.Message, state: FSMContext):
         await cmd_start(message)
 
 if __name__ == '__main__':
-    dp.run_polling(bot)
+    dp.run_polling(bot, skip_updates=True)
