@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Инициализация объектов
 bot = Bot(
-    token="7729020193:AAHNd76RUEAxts8l3beOFi-Vf6qNyT2Bj4w",
+    token="Token",
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Установка параметров по умолчанию
 )
 storage = MemoryStorage()
