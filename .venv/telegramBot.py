@@ -7,6 +7,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.client.default import DefaultBotProperties
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
